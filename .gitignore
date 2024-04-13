@@ -1,0 +1,14 @@
+# Exclude compiled Python files
+*.pyc
+
+# Exclude files in the 'logs' directory
+logs/
+sealed_models/
+MLP_TrainedModels/
+
+# Exclude a specific file
+signed_transformer.bin
+signed_transformer1.bin
+signed_transformer2.bin
+signed_transformer3.bin
+transformer_1.h5
