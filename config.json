@@ -7,7 +7,7 @@
     "d_ff" : 2048,
     "max_seq_length" : 100,
     "dropout" : 0.1,
-    "data_in_each_worker" : 200,
+    "data_in_each_worker" : 500,
     "test_in_each_worker" : 20,
     "number_of_clients" : 3,
     "batch_size" : 50, 
