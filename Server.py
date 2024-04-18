@@ -36,6 +36,9 @@ class Server:
                                      ,transformer_id=100)
     def aggregate_models(self, transformers, agg_method='fedAvg'):
         if agg_method == 'fedAvg':
+            # for param in self.server_model.parameters():
+            #     param.data.fill_(0)
+            # self.server_model._init_weights()
             for transformer in transformers:
                 loaded_transformer = sgx.load_model(file_path=transformer, key=self.key)
                 sum_of_all_data_points = self.config["data_in_each_worker"] * self.config["n_workers"]

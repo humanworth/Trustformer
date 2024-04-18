@@ -5,16 +5,6 @@ Created on Tue Mar  5 15:48:15 2024
 @author: aliab
 """
 
-from Transformer import Transformer
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import numpy as np
-#from datasets import load_dataset
-#from transformers import AutoTokenizer
-import gc
-import Dataset as ds
-from Worker import Worker
 import Utils
 import Federated_training
 import Metrics
@@ -26,6 +16,7 @@ config = Utils.load_config("config.json")
 paths = ["sealed_models/worker0","sealed_models/worker1","sealed_models/worker2"]
 ####################### Initialize workers based on the number specified in config dictionary
 workers = Federated_training.initialize_workers(config)
+
 main_server = Federated_training.initialize_server(config)
 
 #skip as they are already trained and stored in bin file worker0,worker1,worker2
@@ -59,39 +50,7 @@ for epoch in range(config['n_epochs']):
 
 
 ######################## Juts for test
-# optimizer = optim.Adam(server['model'].get_model().parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)#optimizer
-# criterion = nn.CrossEntropyLoss(ignore_index=0)
-# dataset = ds.tokenized_dataset(name='wmt19', n_records_train = config['data_in_each_worker'], n_records_test = config['test_in_each_worker'], max_seq_length = config['max_seq_length'], train_offset = 0, test_offset = 0)
-#
-# server['model'].get_model().eval()
-# with torch.autograd.no_grad():#torch.no_grad():
-#
-#       source_ids_validation = torch.tensor(dataset['source_ids_validation']).to(config['device'])
-#       target_ids_validation = torch.tensor(dataset['target_ids_validation']).to(config['device'])
-#       # Forward pass
-#       val_output = server['model'].get_model()(source_ids_validation, target_ids_validation)
-#       # Compute the loss
-#       val_loss = criterion(val_output.contiguous().view(-1, config['tgt_vocab_size']),target_ids_validation.contiguous().view(-1))
-#          # Print validation loss
-#       print(f"Validation Loss: {val_loss.item()}")
-#       generated_tokens = torch.argmax(val_output, dim=-1)
-#
-#             # Convert token IDs to actual tokens using your vocabulary
-#             # Convert token IDs to actual tokens using the BART tokenizer
-#       generated_texts = ds.decode_tokens(generated_tokens)
-#
-# # Example usage:
-# validation_predictions = generated_tokens.tolist() # List of generated translations
-# validation_ground_truths = target_ids_validation.tolist()   # List of ground truth translations
-#
-# len(validation_ground_truths)
-# len(validation_predictions)
-#
-# candidate_corpus = ds.decode_tokens(generated_tokens[0])
-# reference_corpus = ds.decode_tokens(target_ids_validation[5])
-#
-# bleu_score = Metrics.calculate_bleu(candidate_corpus, reference_corpus)
-# print("BLEU score:", bleu_score)
+
 
     
 ##############################################################################

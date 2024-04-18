@@ -22,7 +22,7 @@ class Transformer(nn.Module):
         self.fc = nn.Linear(d_model, tgt_vocab_size)
         self.dropout = nn.Dropout(dropout)
         self.transformer_id = transformer_id
-        
+
     # def generate_mask(self, src, tgt):
     #     src_mask = (src != 0).unsqueeze(1).unsqueeze(2)
     #     if tgt.shape[0] <= 0:
@@ -146,3 +146,4 @@ class Transformer(nn.Module):
     
     def getTransformerId(self):
         return self.transformer_id
+
