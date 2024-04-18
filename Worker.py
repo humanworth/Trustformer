@@ -20,13 +20,19 @@ class Worker:
         self.dataset = dataset # this is a dictionary of {"","","",""}
         self.key = provisioning_key
         self.name = name
-        self.optimizer = optim.Adam(transformer.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)#optimizer
+        self.optimizer = optim.SGD(transformer.parameters(), lr=0.001, momentum=0.9, dampening=0, weight_decay=0, nesterov=False)
+            #optim.Adam(transformer.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9))#optimizer
         self.criterion = nn.CrossEntropyLoss(ignore_index=0)
         self.transformer = transformer
+        self.history = {}
         self.config = config
         
     def start_training(self):
         self.transformer.train()
+        self.history['iteration'] = []
+        self.history['batch'] = []
+        self.history['loss'] = []
+        self.history['accuracy'] = []
         for iteration in range(len(self.dataset['source_ids'])//self.config['batch_size']):   
             for batch in range(self.config['batch_size']):
                 src_data = torch.tensor(self.dataset['source_ids'][iteration*self.config['batch_size']:(iteration+1)*self.config['batch_size']]).to(self.config['device'])
@@ -41,6 +47,10 @@ class Worker:
                 loss_1.backward()
                 self.optimizer.step()
                 print(f"iteration: {iteration+1}, batch: {batch+1} , Loss: {loss_1.item()} of transformer {self.name}")
+                self.history['iteration'] = self.history['iteration'].append(iteration + 1)
+                self.history['batch'] = self.history['batch'].append(batch + 1)
+                self.history['loss'] = self.history['loss'].append(loss_1.item())
+                # self.history['accuracy'] = self.history['accuracy'].append()
                 del src_data
                 del tgt_data
                 torch.cuda.empty_cache()
@@ -68,7 +78,8 @@ class Worker:
     
     def get_model(self):
         return self.transformer
-    
+    def get_optimizer(self):
+        return self.optimizer
     def set_parameters(self, new_transformer):
         for param_new, param1 in zip(new_transformer.parameters(), self.transformer.parameters()):
             # Check if the parameter is trainable

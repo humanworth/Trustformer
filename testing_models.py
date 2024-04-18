@@ -34,7 +34,30 @@ main_server = Federated_training.initialize_server(config)
 
 workers = Federated_training.load_unseal_models(paths,workers)
 workers[1].get_model().train()
-# Federated_training.train_workers(workers[1:2])
+
+
+learning_rate = 0.01
+weight_decay = 0.0
+momentum = 0.9
+dampening = 0.0
+nesterov = False
+epsilon = 1e-8
+beta1 = 0.9
+beta2 = 0.999
+optimizer2 = optim.SGD(params=workers[1].get_model().parameters(), lr=learning_rate, momentum=momentum, dampening=dampening, weight_decay=weight_decay, nesterov=nesterov)
+workers[1].optimizer = optimizer2
+# Update the learning rate of the optimizer
+
+# for param_group in workers[1].get_optimizer().param_groups:
+#     param_group['lr'] = learning_rate
+#     param_group['weight_decay'] = weight_decay
+#     param_group['momentum'] = momentum
+#     param_group['nesterov'] = nesterov
+#     param_group['epsilon'] = epsilon
+#     param_group['beta1'] = beta1
+#     param_group['beta2'] = beta2
+
+Federated_training.train_workers(workers[1:2])
 
 paths=paths[1:2]
 server = main_server.aggregate_models(paths, agg_method='fedAvg')  # FL aggregation happens here
