@@ -9,6 +9,8 @@ import Dataset as ds
 from Worker import Worker
 import numpy as np
 import Utils
+import os
+import json
 config = Utils.load_config("config.json")
 from Server import Server
 def train_workers(workers):
@@ -93,4 +95,18 @@ def send_global_model_to_clients(config, server):
         name = "worker{}".format(i)
         server.encrypt_store_model(name=name)
 
-       
+
+def store_worker_info(workers, epoch):
+    results_folder = config['results']
+    for worker in workers:
+        results_folder= config['results']+f'/{epoch+1}/{worker.name}'#.format(worker.name)
+        if not os.path.exists(results_folder):
+            os.makedirs(results_folder)
+
+        # Define the file path to save the data
+        file_path = os.path.join(results_folder, f'{worker.name}.json')
+
+        # Write the dictionary data to a JSON file
+        with open(file_path, 'w') as file:
+            json.dump(worker.history, file)
+        print(f"history of worker {worker.name} epoch {epoch+1} saved to: {file_path}")

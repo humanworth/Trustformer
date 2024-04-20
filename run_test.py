@@ -29,6 +29,8 @@ for epoch in range(config['n_epochs']):
     Federated_training.send_global_model_to_clients(config,server=server['model']) #send aggregated model to clients
     workers = Federated_training.load_unseal_models(paths, workers) # this function is equal to receieve model in client side
     Federated_training.setup_optimizers(workers=workers, optimizer_name = 'sgd')
+    Federated_training.store_worker_info(workers, epoch)
+
 #load_workers[0].start_training()
 
 
