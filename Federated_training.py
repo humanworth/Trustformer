@@ -32,11 +32,15 @@ def seal_store_models(workers):
 
 def load_unseal_models(paths, workers):
     new_workers = []
-    print("receiving infor for workers...")
+    print("receiving info for workers...")
     for path, worker in zip(paths, workers):
         new_workers.append(worker.load_decrypt_model(path))
     
     return new_workers
+def setup_optimizers(workers, optimizer_name='sgd'):
+    for worker in workers:
+        worker.set_optimizer(optimizer_name=optimizer_name)
+
 def initialize_server(config):
     return Server(config = config)
     

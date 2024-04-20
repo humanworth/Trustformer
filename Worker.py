@@ -47,9 +47,9 @@ class Worker:
                 loss_1.backward()
                 self.optimizer.step()
                 print(f"iteration: {iteration+1}, batch: {batch+1} , Loss: {loss_1.item()} of transformer {self.name}")
-                self.history['iteration'] = self.history['iteration'].append(iteration + 1)
-                self.history['batch'] = self.history['batch'].append(batch + 1)
-                self.history['loss'] = self.history['loss'].append(loss_1.item())
+                self.history['iteration'].append(iteration + 1)
+                self.history['batch'].append(batch + 1)
+                self.history['loss'].append(loss_1.item())
                 # self.history['accuracy'] = self.history['accuracy'].append()
                 del src_data
                 del tgt_data
@@ -92,7 +92,12 @@ class Worker:
         loaded_transformer = sgx.load_model(file_path=file_path, key=self.key)
         self.transformer = loaded_transformer
         return self
-
+    def set_optimizer(self, optimizer_name = 'sgd'):
+        if optimizer_name == 'sgd':
+            optimizer2 = optim.SGD(params=self.transformer.parameters(), lr=self.config["learning_rate"], momentum=self.config["momentum"],
+                               dampening=self.config["dampening"], weight_decay=self.config["weight_decay"],
+                                   nesterov=self.config["nesterov"])
+            self.optimizer = optimizer2
     def encrypt_store_model(self):
         print('SGX encrypting and storing the transformer of : ', self.name)
         directory = "sealed_models"

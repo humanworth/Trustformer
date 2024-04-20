@@ -27,8 +27,8 @@ for epoch in range(config['n_epochs']):
     paths = Federated_training.seal_store_models(workers)
     server = main_server.aggregate_models(paths, agg_method='fedAvg') # FL aggregation happens here
     Federated_training.send_global_model_to_clients(config,server=server['model']) #send aggregated model to clients
-    Federated_training.load_unseal_models(paths, workers) # this function is equal to receieve model in client side
-
+    workers = Federated_training.load_unseal_models(paths, workers) # this function is equal to receieve model in client side
+    Federated_training.setup_optimizers(workers=workers, optimizer_name = 'sgd')
 #load_workers[0].start_training()
 
 
