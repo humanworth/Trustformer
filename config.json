@@ -12,7 +12,7 @@
     "number_of_clients" : 3,
     "batch_size" : 10,
     "n_epochs" : 10,
-    "device" : "cuda",
+    "device" : "cpu",
     "n_workers" : 3,
     "learning_rate" : 0.0001,
     "batch_epoch" : 1,
