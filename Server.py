@@ -37,12 +37,13 @@ class Server:
                                         , num_layers=self.config['num_layers'], d_ff=self.config['d_ff']
                                         , max_seq_length=self.config['max_seq_length'], dropout=self.config['dropout']
                                         , transformer_id=100)
-
+        self.server_model.to(self.config['device'])
     def aggregate_models(self, transformers, agg_method='fedAvg'):
         if agg_method == 'fedAvg':
             differences = []
             for transformer in transformers:
                 loaded_transformer = sgx.load_model(file_path=transformer, key=self.key)
+                loaded_transformer.to(self.config['device'])
                 ###### Compute difference between workers and server model
                 differences.append(self.calculate_difference(loaded_transformer))
             ###### Average the difference
@@ -67,6 +68,7 @@ class Server:
                                   , num_layers=self.config['num_layers'], d_ff=self.config['d_ff']
                                   , max_seq_length=self.config['max_seq_length'], dropout=self.config['dropout']
                                   , transformer_id=100)
+        placeholder.to(self.config['device'])
         for param in placeholder.parameters():
             param.data.fill_(0)
         for difference in differences:
@@ -137,6 +139,7 @@ class Server:
                              , num_layers=self.config['num_layers'], d_ff=self.config['d_ff']
                              , max_seq_length=self.config['max_seq_length'], dropout=self.config['dropout']
                              , transformer_id=100)
+        output_t.to(self.config['device'])
         for param in output_t.parameters():
             param.data.fill_(0)
         for server, param, output in zip(self.server_model.parameters(), loaded_transformer.parameters(),output_t.parameters()):

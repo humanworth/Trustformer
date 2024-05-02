@@ -48,7 +48,7 @@ class Worker:
 
         # Loop through the dataset in batches
         for iteration in range(len(self.dataset['source_ids']) // self.config['batch_size']):
-            for batch in range(self.config['batch_size']):
+            for batch in range(self.config['batch_epoch']):
                 # Prepare batch data
                 src_data = torch.tensor(
                     self.dataset['source_ids'][
@@ -80,7 +80,7 @@ class Worker:
 
                 # Logging information
                 print(
-                    f"iteration: {iteration + 1}, batch: {batch + 1}, Loss: {loss_1.item()} of transformer {self.name}")
+                    f"iteration: {iteration + 1}, batch_epoch: {batch + 1}, Loss: {loss_1.item()} of transformer {self.name}")
 
                 # Track history
                 self.history['iteration'].append(iteration + 1)
