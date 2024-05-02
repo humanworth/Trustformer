@@ -12,6 +12,9 @@ import torch.optim as optim
 import torch.nn as nn
 import torch
 import os
+import torch
+from torch.cuda.amp import GradScaler, autocast
+import gc
 # Serialize and encrypt transformer model
 #serialized_model = pickle.dumps(transformer_model)
 
@@ -26,36 +29,103 @@ class Worker:
         self.transformer = transformer
         self.history = {}
         self.config = config
-        
+
     def start_training(self):
+        # Set the model to training mode and move it to the device
         self.transformer.train()
-        self.history['iteration'] = []
-        self.history['batch'] = []
-        self.history['loss'] = []
-        self.history['accuracy'] = []
-        for iteration in range(len(self.dataset['source_ids'])//self.config['batch_size']):   
+        self.transformer.to(self.config['device'])
+
+        # Initialize history tracking
+        self.history = {
+            'iteration': [],
+            'batch': [],
+            'loss': [],
+            'accuracy': []
+        }
+
+        # Create a GradScaler for mixed precision training
+        scaler = GradScaler()
+
+        # Loop through the dataset in batches
+        for iteration in range(len(self.dataset['source_ids']) // self.config['batch_size']):
             for batch in range(self.config['batch_size']):
-                src_data = torch.tensor(self.dataset['source_ids'][iteration*self.config['batch_size']:(iteration+1)*self.config['batch_size']]).to(self.config['device'])
-                tgt_data = torch.tensor(self.dataset['target_ids'][iteration*self.config['batch_size']:(iteration+1)*self.config['batch_size']]).to(self.config['device'])
+                # Prepare batch data
+                src_data = torch.tensor(
+                    self.dataset['source_ids'][
+                    iteration * self.config['batch_size']:(iteration + 1) * self.config['batch_size']]
+                ).to(self.config['device'])
+
+                tgt_data = torch.tensor(
+                    self.dataset['target_ids'][
+                    iteration * self.config['batch_size']:(iteration + 1) * self.config['batch_size']]
+                ).to(self.config['device'])
+
+                # Zero out gradients
                 self.optimizer.zero_grad()
-                self.transformer.to(self.config['device'])
-                output = self.transformer(src_data, tgt_data)#transformer(src_data, tgt_data[:,:-1])
-                # Loss Calculation
-                #loss = loss_function(output, tgt_data)
-                loss_1 = self.criterion(output.contiguous().view(-1, self.config['tgt_vocab_size']), tgt_data.contiguous().view(-1))#tgt_data[:, 1:].contiguous().view(-1))
-                loss_1.to(self.config['device'])
-                loss_1.backward()
-                self.optimizer.step()
-                print(f"iteration: {iteration+1}, batch: {batch+1} , Loss: {loss_1.item()} of transformer {self.name}")
+
+                # Mixed precision training with autocast
+                with autocast():
+                    output = self.transformer(src_data, tgt_data)
+                    loss_1 = self.criterion(
+                        output.contiguous().view(-1, self.config['tgt_vocab_size']),
+                        tgt_data.contiguous().view(-1)
+                    )
+
+                # Scale the loss for mixed precision training
+                scaler.scale(loss_1).backward()
+
+                # Step the optimizer and update the scaler
+                scaler.step(self.optimizer)
+                scaler.update()
+
+                # Logging information
+                print(
+                    f"iteration: {iteration + 1}, batch: {batch + 1}, Loss: {loss_1.item()} of transformer {self.name}")
+
+                # Track history
                 self.history['iteration'].append(iteration + 1)
                 self.history['batch'].append(batch + 1)
                 self.history['loss'].append(loss_1.item())
-                # self.history['accuracy'] = self.history['accuracy'].append()
-                del src_data
-                del tgt_data
+
+                # Clear memory by deleting references
+                del src_data, tgt_data, loss_1, output
                 torch.cuda.empty_cache()
+
+                # Trigger garbage collection to reclaim memory
+                gc.collect()
+
         return self.transformer
-    
+    # def start_training(self):
+    #     self.transformer.train()
+    #     self.transformer.to(self.config['device'])
+    #     self.history['iteration'] = []
+    #     self.history['batch'] = []
+    #     self.history['loss'] = []
+    #     self.history['accuracy'] = []
+    #     for iteration in range(len(self.dataset['source_ids'])//self.config['batch_size']):
+    #         for batch in range(self.config['batch_size']):
+    #             src_data = torch.tensor(self.dataset['source_ids'][iteration*self.config['batch_size']:(iteration+1)*self.config['batch_size']]).to(self.config['device'])
+    #             tgt_data = torch.tensor(self.dataset['target_ids'][iteration*self.config['batch_size']:(iteration+1)*self.config['batch_size']]).to(self.config['device'])
+    #             self.optimizer.zero_grad()
+    #             output = self.transformer(src_data, tgt_data)#transformer(src_data, tgt_data[:,:-1])
+    #             # Loss Calculation
+    #             #loss = loss_function(output, tgt_data)
+    #             loss_1 = self.criterion(output.contiguous().view(-1, self.config['tgt_vocab_size']), tgt_data.contiguous().view(-1))#tgt_data[:, 1:].contiguous().view(-1))
+    #             # loss_1.to(self.config['device'])
+    #             loss_1.backward()
+    #             self.optimizer.step()
+    #             print(f"iteration: {iteration+1}, batch: {batch+1} , Loss: {loss_1.item()} of transformer {self.name}")
+    #             self.history['iteration'].append(iteration + 1)
+    #             self.history['batch'].append(batch + 1)
+    #             self.history['loss'].append(loss_1.item())
+    #             # self.history['accuracy'] = self.history['accuracy'].append()
+    #             del src_data
+    #             del tgt_data
+    #             del loss_1
+    #             del output
+    #             torch.cuda.empty_cache()
+    #     return self.transformer
+
     def evaluate_model(self):
         self.transformer.eval()
         with torch.autograd.no_grad():#torch.no_grad():

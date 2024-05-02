@@ -27,7 +27,7 @@ class MultiHeadAttention(nn.Module):
         #print("mask: ",mask)
         #print("mask shape:", mask.shape)
         if mask is not None:
-            attn_scores = attn_scores.masked_fill(mask == 0, -1e9)
+            attn_scores = attn_scores.masked_fill(mask == 0, -1e4)
         attn_probs = torch.softmax(attn_scores, dim=-1)
         output = torch.matmul(attn_probs, V)
         return output

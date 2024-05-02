@@ -6,7 +6,7 @@ Created on Thu Apr 11 16:43:45 2024
 """
 import torch
 
-from torchtext.data.metrics import bleu_score
+# from torchtext.data.metrics import bleu_score
 
 
 def calculate_accuracy(predictions, ground_truths):
@@ -21,6 +21,6 @@ def calculate_accuracy(predictions, ground_truths):
     return accuracy
 
 
-def calculate_bleu(candidate_tensor, reference_tensor):
-    bleu = bleu_score(candidate_tensor, reference_tensor,max_n=3,weights=[0.001]*3)
-    return bleu
+# def calculate_bleu(candidate_tensor, reference_tensor):
+#     bleu = bleu_score(candidate_tensor, reference_tensor,max_n=3,weights=[0.001]*3)
+#     return bleu
