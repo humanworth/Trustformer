@@ -89,8 +89,7 @@ class Server:
         return self.server_model
 
     def load_decrypt_model(self, file_path):
-        loaded_transformer = sgx.load_model(file_path=file_path, key=self.key)
-        self.transformer = loaded_transformer
+        self.transformer = sgx.load_model(file_path=file_path, key=self.key)
         return self
 
     # def encrypt_store_model(self):

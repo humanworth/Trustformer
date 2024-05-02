@@ -141,9 +141,9 @@ print(candidate_corpuses)
 
 
 #Federated_training.send_global_model_to_clients(config, server=server['model'])  # send aggregated model to clients
-Federated_training.load_unseal_models(paths, workers)  # this function is equal to receieve model in client side
-Federated_training.train_workers(workers[0:1])
-paths = Federated_training.seal_store_models(workers[0:1])
+# Federated_training.load_unseal_models(paths, workers)  # this function is equal to receieve model in client side
+# Federated_training.train_workers(workers[0:1])
+# paths = Federated_training.seal_store_models(workers[0:1])
 
 # Example usage:
 predicted_texts = ["This is a test translation.", "Another translation example."]
