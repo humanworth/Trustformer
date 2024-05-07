@@ -16,7 +16,7 @@ import torch
 from torch.cuda.amp import GradScaler, autocast
 import gc
 from NoamLR import NoamLR
-
+import Metrics
 # Serialize and encrypt transformer model
 # serialized_model = pickle.dumps(transformer_model)
 
@@ -150,9 +150,6 @@ class Worker:
                 # Backward pass
                 loss.backward()
 
-                # Gradient clipping (optional, based on your specific needs)
-                # torch.nn.utils.clip_grad_norm_(self.transformer.parameters(), max_norm=1.0)
-
                 # Update parameters
                 self.optimizer.step()
 
@@ -178,57 +175,72 @@ class Worker:
         torch.cuda.empty_cache()
         return self.transformer
 
-    # def start_training(self):
-    #     self.transformer.train()
-    #     self.transformer.to(self.config['device'])
-    #     self.history['iteration'] = []
-    #     self.history['batch'] = []
-    #     self.history['loss'] = []
-    #     self.history['accuracy'] = []
-    #     for iteration in range(len(self.dataset['source_ids'])//self.config['batch_size']):
-    #         for batch in range(self.config['batch_size']):
-    #             src_data = torch.tensor(self.dataset['source_ids'][iteration*self.config['batch_size']:(iteration+1)*self.config['batch_size']]).to(self.config['device'])
-    #             tgt_data = torch.tensor(self.dataset['target_ids'][iteration*self.config['batch_size']:(iteration+1)*self.config['batch_size']]).to(self.config['device'])
-    #             self.optimizer.zero_grad()
-    #             output = self.transformer(src_data, tgt_data)#transformer(src_data, tgt_data[:,:-1])
-    #             # Loss Calculation
-    #             #loss = loss_function(output, tgt_data)
-    #             loss_1 = self.criterion(output.contiguous().view(-1, self.config['tgt_vocab_size']), tgt_data.contiguous().view(-1))#tgt_data[:, 1:].contiguous().view(-1))
-    #             # loss_1.to(self.config['device'])
-    #             loss_1.backward()
-    #             self.optimizer.step()
-    #             print(f"iteration: {iteration+1}, batch: {batch+1} , Loss: {loss_1.item()} of transformer {self.name}")
-    #             self.history['iteration'].append(iteration + 1)
-    #             self.history['batch'].append(batch + 1)
-    #             self.history['loss'].append(loss_1.item())
-    #             # self.history['accuracy'] = self.history['accuracy'].append()
-    #             del src_data
-    #             del tgt_data
-    #             del loss_1
-    #             del output
-    #             torch.cuda.empty_cache()
-    #     return self.transformer
 
     def evaluate_model(self):
         self.transformer.eval()
-        with torch.autograd.no_grad():  # torch.no_grad():
-            source_ids_validation = torch.tensor(self.dataset['source_ids_validation']).to(self.config['device'])
-            target_ids_validation = torch.tensor(self.dataset['target_ids_validation']).to(self.config['device'])
-            # Forward pass
-            val_output = self.transformer(source_ids_validation, target_ids_validation)
-            # Compute the loss
-            val_loss = self.criterion(val_output.contiguous().view(-1, self.config['tgt_vocab_size']),
+        self.transformer.to(self.config['device'])
+        text_results = []
+        loss_results = []
+        metrics = {'bert_score':[],'bleu_score':[],'rouge_scores':[], 'meteor_score':[]}
+        with (torch.autograd.no_grad()):  # torch.no_grad():
+            for iteration in range(len(self.dataset['source_ids_validation']) // self.config['batch_size']):
+                source_ids_validation = torch.tensor(
+                    self.dataset['source_ids_validation'][
+                    iteration * self.config['batch_size']:(iteration + 1) * self.config['batch_size']],
+                    device=self.config['device'], dtype=torch.long)  # Ensure correct dtype to match model expectations
+
+                target_ids_validation = torch.tensor(
+                    self.dataset['target_ids_validation'][
+                    iteration * self.config['batch_size']:(iteration + 1) * self.config['batch_size']],
+                    device=self.config['device'], dtype=torch.long)
+
+                # source_ids_validation = torch.tensor(self.dataset['source_ids_validation']).to(self.config['device'])
+                # target_ids_validation = torch.tensor(self.dataset['target_ids_validation']).to(self.config['device'])
+
+                # Forward pass
+                val_output = self.transformer(source_ids_validation, target_ids_validation)
+                # Compute the loss
+                val_loss = self.criterion(val_output.contiguous().view(-1, self.config['tgt_vocab_size']),
                                       target_ids_validation.contiguous().view(-1))
 
-            # Print validation loss
-            print(f"Validation Loss: {val_loss.item()}")
+                # Print validation loss
+                print(f"Validation Loss: {val_loss.item()}")
+                loss_results.append(val_loss.item())
+                generated_tokens = torch.argmax(val_output, dim=-1)
 
-            generated_tokens = torch.argmax(val_output, dim=-1)
+                # Convert token IDs to actual tokens using the BART tokenizer
+                # generated_texts = ds.decode_tokens(generated_tokens)
+                # text_results.append(generated_texts)
+                candidate_corpus = ds.decode_tokens(generated_tokens)
+                text_results.append(candidate_corpus)
+                reference_corpus = ds.decode_tokens(target_ids_validation)
 
-            # Convert token IDs to actual tokens using your vocabulary
-            # Convert token IDs to actual tokens using the BART tokenizer
-            generated_texts = ds.decode_tokens(generated_tokens)
-        return generated_texts
+                # candidate_corpuses = ds.decode_tokens(generated_tokens)
+                print(candidate_corpus)
+
+                P, R, F1 = Metrics.score(candidate_corpus, reference_corpus, lang="en")
+                print(f"BERTScore Precision: {P.mean()}, Recall: {R.mean()}, F1 Score: {F1.mean()}")
+                # metrics['bert_score'] = {"P": P.mean(), "R":R.mean(), "F1 score": F1.mean()}
+                # for key in metrics['bert_score']:
+                metrics['bert_score'].append({"P": P.mean(), "R":R.mean(), "F1 score": F1.mean()})
+                bleu_score = Metrics.sentence_bleu(reference_corpus, candidate_corpus)
+                print(f"BLEU Score: {bleu_score}")
+                metrics['bleu_score'].append(bleu_score)
+                rouge_scores = Metrics.compute_rouge(candidate_corpus, reference_corpus)
+                print("ROUGE Scores:", rouge_scores)
+                metrics['rouge_scores'].append(rouge_scores)
+                meteor_score_1 = Metrics.compute_meteor([candidate_corpus], [reference_corpus])
+                print("METEOR Score:", meteor_score_1)
+                metrics['meteor_score'].append(meteor_score_1)
+
+                del source_ids_validation, target_ids_validation, val_output, val_loss,generated_tokens,candidate_corpus,  P, R, F1, bleu_score, rouge_scores, meteor_score_1
+                torch.cuda.empty_cache()
+                # Trigger garbage collection to reclaim memory
+                gc.collect()
+
+            self.transformer.to('cpu')
+            torch.cuda.empty_cache()
+        return text_results, loss_results , metrics
 
     def get_model(self):
         return self.transformer
