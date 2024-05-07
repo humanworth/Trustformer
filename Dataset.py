@@ -7,6 +7,8 @@ Created on Wed Apr 10 08:59:59 2024
 
 from datasets import load_dataset
 from transformers import AutoTokenizer
+from transformers import MBartForConditionalGeneration, MBart50TokenizerFast
+
 from transformers import XLMRobertaTokenizer, XLMRobertaForSequenceClassification
 
 def load_dataset_2(name='wmt19', n_records_train=200, n_records_test=10, train_offset = 0, test_offset = 0, direction = 'ru_to_en'):
@@ -34,7 +36,8 @@ def load_dataset_2(name='wmt19', n_records_train=200, n_records_test=10, train_o
 def tokenized_dataset(name='wmt19', n_records_train = 200, n_records_test = 10, max_seq_length = 100, train_offset = 0, test_offset = 0):
     # tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large")
     tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-base")
-
+    # tokenizer = MBart50TokenizerFast.from_pretrained("facebook/mbart-large-50-many-to-many-mmt")
+    # encoded = tokenizer(src_text, return_tensors="pt", src_lang=src_lang)
     source_data, target_data, source_data_validation, target_data_validation = load_dataset_2(name='wmt19',n_records_train=n_records_train,n_records_test=n_records_test, train_offset = train_offset, test_offset = test_offset)
     source_tokens = tokenizer(source_data, return_tensors="pt", truncation=True, padding=True,max_length=max_seq_length)
     target_tokens = tokenizer(target_data, return_tensors="pt", truncation=True, padding=True, max_length=max_seq_length)
@@ -54,6 +57,8 @@ def tokenized_dataset(name='wmt19', n_records_train = 200, n_records_test = 10, 
 
 def decode_tokens(tokens):
     # tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large")
+
+    # tokenizer = MBart50TokenizerFast.from_pretrained(model_name="facebook/mbart-large-50-many-to-many-mmt")
     tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-base")
     generated_tokens = [tokenizer.decode(token_id) for token_id in tokens]
     return generated_tokens

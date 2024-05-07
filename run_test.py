@@ -26,11 +26,14 @@ for epoch in range(config['n_epochs']):
     print("start training for epoch {}".format(epoch))
     Federated_training.train_workers(workers)
     paths = Federated_training.seal_store_models(workers)
-    server = main_server.aggregate_models(paths, agg_method='fedAvg') # FL aggregation happens here
-    Federated_training.send_global_model_to_clients(config,server=server['model']) #send aggregated model to clients
-    workers = Federated_training.load_unseal_models(paths, workers) # this function is equal to receieve model in client side
-    Federated_training.setup_optimizers(workers=workers, optimizer_name = 'sgd')
-    Federated_training.store_worker_info(workers, epoch)
+    server = main_server.aggregate_models(paths, agg_method='Avg') # FL aggregation happens here
+    new_optimizer = main_server.aggregate_optimizers([worker.optimizer for worker in workers])
+    Federated_training.setup_optimizers(new_optimizer, optimizer_name='adam',workers=workers)
+    # Federated_training.setup_optimizers(new_optimizer, workers=workers, optimizer_name = 'adam')
+
+    # Federated_training.send_global_model_to_clients(config,server=server['model']) #send aggregated model to clients
+    # workers = Federated_training.load_unseal_models(paths, workers) # this function is equal to receieve model in client side
+    # Federated_training.store_worker_info(workers, epoch)
 
 #load_workers[0].start_training()
 

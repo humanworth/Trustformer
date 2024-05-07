@@ -39,9 +39,9 @@ def load_unseal_models(paths, workers):
         new_workers.append(worker.load_decrypt_model(path))
     
     return new_workers
-def setup_optimizers(workers, optimizer_name='sgd'):
-    for worker in workers:
-        worker.set_optimizer(optimizer_name=optimizer_name)
+def setup_optimizers(optimizer, workers, optimizer_name='sgd'):
+    for i in range(len(workers)):
+        workers[i].set_optimizer(optimizer[i], optimizer_name=optimizer_name)
 
 def initialize_server(config):
     return Server(config = config)
@@ -82,6 +82,7 @@ def initialize_workers(config):
                              , num_layers = config['num_layers'], d_ff = config['d_ff']
                              , max_seq_length = config['max_seq_length'], dropout = config['dropout']
                              ,transformer_id=i)
+        trans.half()
         data = ds.tokenized_dataset(name='wmt19', n_records_train = (i+1) * config['data_in_each_worker'], n_records_test = (i+1) * config['test_in_each_worker'], max_seq_length = config['max_seq_length'], train_offset = i * config['data_in_each_worker'], test_offset = i * config['test_in_each_worker']) 
         workers.append(Worker(data,config, 
                               trans, name = 'worker'+str(i),
